@@ -2,8 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	// "encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,23 +12,8 @@ import (
 	"strings"
 )
 
-// Request       = Request-Line
-//                 *(( general-header
-//                  | request-header
-//                  | entity-header ) CRLF)
-//                 CRLF
-//                 [ message-body ]
-
-// Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
-
-// Response = Status-Line               ;
-//            *(( general-header        ;
-//             | response-header        ;
-//             | entity-header ) CRLF)  ;
-//            CRLF
-//            [ message-body ]          ;
-
-// HTTP-Version SP Status-Code SP Reason-Phrase CRLF
+// https://datatracker.ietf.org/doc/html/rfc2616
+// https://datatracker.ietf.org/doc/html/rfc7230
 
 // may be incomplete
 var httpStatusCodes = map[int]string{
@@ -144,20 +127,18 @@ func (r *Response) Write(body []byte) (int, error) {
 	if len(r.Headers) > 0 {
 		for k, v := range r.Headers {
 			if len(v) > 0 {
-				var buf bytes.Buffer
 
-				buf.WriteString(k)
-				buf.WriteString(": ")
+				// error handling?
+				r.w.Write([]byte(k))
+				r.w.Write([]byte{':', ' '})
 
-				buf.WriteString(v[0])
+				r.w.Write([]byte(v[0]))
 				for i := 1; i < len(v); i++ {
-					buf.WriteByte(',')
-					buf.WriteString(v[i])
+					r.w.Write([]byte{','})
+					r.w.Write([]byte(v[i]))
 				}
 
-				buf.WriteString("\r\n")
-
-				r.w.Write(buf.Bytes())
+				r.w.Write([]byte{'\r', '\n'})
 			}
 		}
 	}
@@ -205,6 +186,7 @@ func handleConnection(conn net.Conn) {
 		w:       conn,
 	}
 
+	// test response
 	resp.Headers.Set("Content-Type", "application/json")
 	resp.Headers.Add("x-multi-header", "one")
 	resp.Headers.Add("x-multi-header", "two")
